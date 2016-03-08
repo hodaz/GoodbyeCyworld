@@ -28,14 +28,14 @@ public class CommonLog {
         println(android.util.Log.ERROR, tag, args);
     }
 
-    public static void e( String tag, Throwable e ) {
-        e( tag, e.toString(), e );
+    public static void e(String tag, Throwable e) {
+        e(tag, e.toString(), e);
     }
 
-    public static void e( Throwable e ) {
+    public static void e(Throwable e) {
         if (e == null) return;
 
-        e( "ERROR", e.toString(), e );
+        e("ERROR", e.toString(), e);
     }
 
     public static void v(String tag, Object... args) {
@@ -99,12 +99,24 @@ public class CommonLog {
                 }
 
                 if (sb != null)
-                    android.util.Log.println(level, tag, sb.toString());
+                    android.util.Log.println(level, tag, attachCaller(sb.toString()));
                 if (sbLater != null)
-                    android.util.Log.println(level, tag, sbLater.toString());
+                    android.util.Log.println(level, tag, attachCaller(sbLater.toString()));
 
             }
         }
+    }
+
+    //** 로그가 어디에서 출력되었는지 확인할 수 있습니다. 클릭해서 이동도 가능해서 편합니다.*/
+    private static String attachCaller(String msg) {
+        return msg + " | at " + getCurFunction();
+    }
+
+    private static String getCurFunction() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        StackTraceElement lmnt = stackTrace[6];
+
+        return lmnt.toString();
     }
 
     @SuppressLint("NewApi")
