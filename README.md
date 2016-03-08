@@ -1,2 +1,2 @@
-So save we all
+So say we all
 
