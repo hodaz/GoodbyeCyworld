@@ -8,7 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.NotificationCompat;
 
-import com.hodaz.goodbyecyword.Model.Folder;
+import com.hodaz.goodbyecyword.model.Folder;
 import com.hodaz.goodbyecyword.common.Defines;
 import com.hodaz.goodbyecyword.common.Utils;
 

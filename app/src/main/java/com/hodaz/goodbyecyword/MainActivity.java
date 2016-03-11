@@ -16,7 +16,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 
-import com.hodaz.goodbyecyword.Model.Folder;
+import com.hodaz.goodbyecyword.model.Folder;
 import com.hodaz.goodbyecyword.common.Defines;
 import com.hodaz.goodbyecyword.common.Utils;
 
