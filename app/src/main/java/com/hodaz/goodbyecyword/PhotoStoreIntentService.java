@@ -8,9 +8,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.NotificationCompat;
 
-import com.hodaz.goodbyecyword.model.Folder;
 import com.hodaz.goodbyecyword.common.Defines;
 import com.hodaz.goodbyecyword.common.Utils;
+import com.hodaz.goodbyecyword.model.Folder;
+import com.hodaz.goodbyecyword.model.Post;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -65,6 +66,12 @@ public class PhotoStoreIntentService extends IntentService {
                         imgUrl = imgUrl.replace("file_down", "vm_file_down");
 
                         CommonLog.e(TAG, postId + "\n" + imgUrl);
+
+                        Post post = new Post();
+                        post.folderID = folderID;
+                        post.folderTitle = folderTitle;
+                        post.postID = postId;
+                        post.postImg = imgUrl;
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
