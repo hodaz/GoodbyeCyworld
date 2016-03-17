@@ -2,6 +2,7 @@ package com.hodaz.goodbyecyword;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
@@ -72,7 +73,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
 
-                Log.e(TAG, "url : " + url);
+                CommonLog.e(TAG, "url : " + url);
             }
 
             @Override
@@ -143,7 +144,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 for (Element e : menus) {
                                     Elements menuidElements = e.getElementsByTag("input");
                                     for (Element e2 : menuidElements) {
-                                        CommonLog.e(TAG, e2.attributes().get("value"));
+                                        //CommonLog.e(TAG, e2.attributes().get("value"));
                                     }
 
                                     for (int i = 0; i < menuidElements.size(); i++) {
@@ -152,14 +153,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                                     idCount += menuidElements.size();
                                 }
-                                CommonLog.e(TAG, "menu count : " + idCount);
+                                //CommonLog.e(TAG, "menu count : " + idCount);
 
                                 // title 추출
                                 int titleCount = 0;
                                 for (Element e : menus) {
                                     Elements titleElements = e.getElementsByTag("em");
                                     for (Element e2 : titleElements) {
-                                        CommonLog.e(TAG, e2.text());
+                                        //CommonLog.e(TAG, e2.text());
                                     }
 
                                     for (int i = 0; i < titleElements.size(); i++) {
@@ -168,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                                     titleCount += titleElements.size();
                                 }
-                                CommonLog.e(TAG, "menu count : " + titleCount);
+                                //CommonLog.e(TAG, "menu count : " + titleCount);
 
                                 for (int i = 0; i < idList.size(); i++) {
                                     Folder folder = new Folder();
@@ -183,21 +184,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }.execute();
                 }
                 else if (mFolder.getText().toString().equals("폴더확인")) {
-                    StringBuilder builder = new StringBuilder();
+                    /*StringBuilder builder = new StringBuilder();
 
                     for (Folder f : mFolderList) {
                         builder.append(f.id + "\n" + f.title + "\n");
+                    }*/
+
+                    ArrayList<String> list = new ArrayList<>();
+                    for(Folder f : mFolderList){
+                        list.add(f.title);
                     }
 
-                    new AlertDialog.Builder(mContext).setTitle("폴더목록").setMessage(builder.toString())
+                    new AlertDialog.Builder(mContext).setTitle("폴더목록").setItems(list.toArray(new String[list.size()]), new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            Intent intent = new Intent(MainActivity.this, PhotoStoreIntentService.class);
+                            intent.putExtra("CyID", mCyworldId);
+                            intent.putExtra("Folder", mFolderList.get(which));
+                            startService(intent);
+                        }
+                    })
                             .setPositiveButton(android.R.string.ok, null).setCancelable(false).create().show();
                 }
                 break;
             case R.id.backup:
-                Intent intent = new Intent(this, PhotoStoreIntentService.class);
+                /*Intent intent = new Intent(this, PhotoStoreIntentService.class);
                 intent.putExtra("CyID", mCyworldId);
                 intent.putExtra("FolderList", mFolderList);
-                startService(intent);
+                startService(intent);*/
                 break;
         }
     }
@@ -215,13 +229,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                    .setPositiveButton(android.R.string.ok, null).setCancelable(false).create().show();
 
             String url = html.substring(html.indexOf("startc")+6, html.indexOf("endc"));
-            Log.e(TAG, "url : " + url);
+            CommonLog.e(TAG, "url : " + url);
 
             if (url.equals("http://m.cyworld.com/")) {
                 int startPos = html.indexOf("내 싸이홈가기");
                 if (startPos > 0) {
                     String homeUrl = html.substring(startPos - 37, startPos - 2);
-                    Log.e(TAG, "homeUrl : " + homeUrl);
+                    CommonLog.e(TAG, "homeUrl : " + homeUrl);
 
                     if (homeUrl.startsWith("http")) {
                         final String id = homeUrl.replace("http://cy.cyworld.com/home/", "");
@@ -236,7 +250,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         });
 
                         PreferenceUtil.getInstance().putString(ctx, KEY_CYWORLD_ID, id);
-                        Log.e(TAG, "id : " + id);
+                        CommonLog.e(TAG, "id : " + id);
                     }
                 }
             }
