@@ -8,7 +8,6 @@ import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
@@ -17,9 +16,9 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 
-import com.hodaz.goodbyecyword.model.Folder;
 import com.hodaz.goodbyecyword.common.Defines;
 import com.hodaz.goodbyecyword.common.Utils;
+import com.hodaz.goodbyecyword.model.Folder;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -51,6 +50,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mContext = this;
         mWebView = (WebView) findViewById(R.id.webview);
         mCyID = (Button) findViewById(R.id.cyid);
+        mCyID.setOnClickListener(this);
         mFolder = (Button) findViewById(R.id.folder);
         mFolder.setOnClickListener(this);
         mBackup = (Button) findViewById(R.id.backup);
@@ -213,6 +213,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 intent.putExtra("FolderList", mFolderList);
                 startService(intent);*/
                 break;
+            case R.id.cyid:
+                if (mCyID.getText().toString().equals("로그인")) {
+                    mWebView.loadUrl("https://cyxso.cyworld.com/mnate/Login.sk?loginstr=redirect&redirection=http://m.cyworld.com/&svccd=mcyworld_ndr.nate.com/main/");
+                }
+                break;
         }
     }
 
@@ -254,6 +259,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 }
             }
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mWebView.canGoBack()) {
+            mWebView.goBack();
+        }
+        else {
+            finish();
         }
     }
 }

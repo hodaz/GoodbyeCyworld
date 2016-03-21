@@ -6,20 +6,20 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.support.v7.app.NotificationCompat;
 
 import com.hodaz.goodbyecyword.common.Defines;
 import com.hodaz.goodbyecyword.common.Utils;
+import com.hodaz.goodbyecyword.database.DBAdapter;
 import com.hodaz.goodbyecyword.model.Folder;
 import com.hodaz.goodbyecyword.model.Post;
-import com.nostra13.universalimageloader.cache.disc.naming.HashCodeFileNameGenerator;
 import com.nostra13.universalimageloader.cache.memory.impl.WeakMemoryCache;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
-import com.nostra13.universalimageloader.core.display.RoundedBitmapDisplayer;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -31,7 +31,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * An {@link IntentService} subclass for handling asynchronous task requests in
@@ -85,12 +84,13 @@ public class PhotoStoreIntentService extends IntentService {
                 String folderTitle = folder.title;
 
                 showNoti(folderTitle);
-                String url = String.format(Defines.URL_GET_CONTENT_LIST, cyID, folderID);
-                CommonLog.i(TAG, "url : " + url);
+
+                String lastPostID = null;
+                String lastDate = null;
                 try {
+                    String url = String.format(Defines.URL_GET_CONTENT_LIST, cyID, folderID);
                     Document doc = Jsoup.connect(url).timeout(30000).cookies(Utils.getCookie()).get();
                     Elements posts = doc.getElementsByClass("post");
-                    Elements photos = doc.getElementsByClass("postImage");
 
                     CommonLog.e(TAG, "onHandleIntent : " + doc.toString());
 
@@ -113,10 +113,62 @@ public class PhotoStoreIntentService extends IntentService {
                         post.postID = postId;
                         post.postImg = imgUrl;
 
+                        lastPostID = post.postID.split("_")[0];
+                        lastDate = post.postID.split("_")[1];
+
                         CommonLog.w(TAG, "postImg : " +  post.postImg);
                         CommonLog.w(TAG, "postID" + post.postID);
                         postList.add(post);
                     }
+
+                    while (true) {
+                        if (lastPostID != null && lastDate != null) {
+                            String urlMore = String.format(Defines.URL_GET_CONTENT_MORE_LIST, cyID, folderID, lastPostID, lastDate);
+                            Document docMore = Jsoup.connect(urlMore).timeout(30000).cookies(Utils.getCookie()).get();
+                            Elements postsMore = docMore.getElementsByClass("post");
+
+                            if (postsMore.size() == 0) {
+                                CommonLog.e(TAG, folderTitle + " 조회 끝. DB 저장 시작!");
+                                break;
+                            }
+
+                            for (Element e : postsMore) {
+                                String postId = e.attr("id");
+                                String imgUrl = e.select("figure").attr("style");
+                                imgUrl = imgUrl.replace("background-image:url('", "");
+                                imgUrl = imgUrl.replace("');", "");
+                                imgUrl = imgUrl.replace("cythumb.cyworld.com/269x269/", "");
+                                imgUrl = imgUrl.replace("file_down", "vm_file_down");
+
+                                Post post = new Post();
+                                post.folderID = folderID;
+                                post.folderTitle = folderTitle;
+                                post.postID = postId;
+                                post.postImg = imgUrl;
+
+                                lastPostID = post.postID.split("_")[0];
+                                lastDate = post.postID.split("_")[1];
+
+                                CommonLog.w(TAG, "postImg : " +  post.postImg);
+                                CommonLog.w(TAG, "postID" + post.postID);
+                                postList.add(post);
+                            }
+                        }
+                    }
+
+                    // DB 저장
+                    DBAdapter dbAdapter = new DBAdapter(getApplicationContext());
+                    dbAdapter.open();
+
+                    for (Post post : postList) {
+                        Cursor cursor = dbAdapter.selectPost(post.postID);
+                        if (cursor.getCount() == 0) {
+                            dbAdapter.insertPost(post);
+                        }
+                        cursor.close();
+                    }
+
+                    dbAdapter.close();
 
                     //savePostImages(folderTitle);
 

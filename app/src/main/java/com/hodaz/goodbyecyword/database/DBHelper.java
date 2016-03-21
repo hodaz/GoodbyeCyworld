@@ -27,6 +27,9 @@ class DBHelper extends SQLiteOpenHelper {
             "insert_date INTEGER" +
             ");";
 
+    private static final String SQL_CREATE_INDEX =
+            "CREATE INDEX idx_folder_id ON cyworld_post(post_id)";
+
     public DBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
 
@@ -37,6 +40,9 @@ class DBHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         // 기본 테이블 생성
         db.execSQL(SQL_CREATE_TABLE);
+
+        // 인덱스 생성
+        db.execSQL(SQL_CREATE_INDEX);
     }
 
     @Override

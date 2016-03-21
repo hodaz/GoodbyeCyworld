@@ -51,7 +51,7 @@ public class DBAdapter {
             values.put("post_id", post.postID);
             values.put("post_title", post.postTitle);
             values.put("post_img", post.postImg);
-            values.put("date", System.currentTimeMillis());
+            values.put("insert_date", System.currentTimeMillis());
 
             long rowId = db.insert(POST_TABLE, null, values);
             return rowId;
@@ -78,7 +78,7 @@ public class DBAdapter {
     }
 
     public static final String[] COL_MUSIC_INFO = {
-        "_id", "folder_id", "folder_title", "post_id", "post_title", "post_image", "date"
+        "_id", "folder_id", "folder_title", "post_id", "post_title", "post_img", "insert_date"
     };
 
     /**
@@ -88,5 +88,13 @@ public class DBAdapter {
     public Cursor fetchAll() {
         CommonLog.e(TAG, "fetchAll()");
         return db.query(POST_TABLE, COL_MUSIC_INFO, null, null, null, null, "_id desc");
+    }
+
+    /**
+     * 포스트 가져오기
+     * @return
+     */
+    public Cursor selectPost(String postID) {
+        return db.query(POST_TABLE, COL_MUSIC_INFO, "post_id='"+postID+"'", null, null, null, null);
     }
 }
