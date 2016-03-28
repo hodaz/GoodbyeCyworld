@@ -9,4 +9,5 @@ public class Post {
     public String postID;
     public String postTitle;
     public String postImg;
+    public String storedPostImg;
 }

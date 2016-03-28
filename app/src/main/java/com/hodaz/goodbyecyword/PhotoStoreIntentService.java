@@ -42,9 +42,11 @@ import java.util.ArrayList;
 public class PhotoStoreIntentService extends IntentService {
 
     private static final String TAG = "PhotoStoreIntentService";
-    private ArrayList<Post> postList;
+    private ArrayList<Post> mPostList;
     private static final int MAX_RETRY_COUNT = 100;
+    private NotificationManager nm;
     private NotificationCompat.Builder builder;
+    private NotificationCompat.Builder progBuilder;
     private ImageLoader imageLoader;
 
     public PhotoStoreIntentService() {
@@ -55,6 +57,7 @@ public class PhotoStoreIntentService extends IntentService {
     public void onCreate() {
         super.onCreate();
         initImageLoader();
+        initNoti();
     }
 
     private void initImageLoader(){
@@ -83,10 +86,12 @@ public class PhotoStoreIntentService extends IntentService {
                 String folderID = folder.id;
                 String folderTitle = folder.title;
 
-                showNoti(folderTitle);
+                showNoti("이미지 주소를 수집 중입니다.", folderTitle);
 
                 String lastPostID = null;
                 String lastDate = null;
+                int storeCnt = 0;
+
                 try {
                     String url = String.format(Defines.URL_GET_CONTENT_LIST, cyID, folderID);
                     Document doc = Jsoup.connect(url).timeout(30000).cookies(Utils.getCookie()).get();
@@ -95,7 +100,7 @@ public class PhotoStoreIntentService extends IntentService {
                     CommonLog.e(TAG, "onHandleIntent : " + doc.toString());
 
                     //TODO : max integer size 보다가 게시물이 많으면 에러가 날것 같군요
-                    postList = new ArrayList<Post>(posts.size());
+                    mPostList = new ArrayList<Post>(posts.size());
 
                     for (Element e : posts) {
                         String postId = e.attr("id");
@@ -103,7 +108,7 @@ public class PhotoStoreIntentService extends IntentService {
                         imgUrl = imgUrl.replace("background-image:url('", "");
                         imgUrl = imgUrl.replace("');", "");
                         imgUrl = imgUrl.replace("cythumb.cyworld.com/269x269/", "");
-                        imgUrl = imgUrl.replace("file_down", "vm_file_down");
+                        imgUrl = imgUrl.replace("/file_down", "/vm_file_down");
 
                         CommonLog.e(TAG, postId + "\n" + imgUrl);
 
@@ -116,9 +121,11 @@ public class PhotoStoreIntentService extends IntentService {
                         lastPostID = post.postID.split("_")[0];
                         lastDate = post.postID.split("_")[1];
 
+                        CommonLog.w(TAG, "count : " + (++storeCnt));
                         CommonLog.w(TAG, "postImg : " +  post.postImg);
                         CommonLog.w(TAG, "postID" + post.postID);
-                        postList.add(post);
+                        CommonLog.w(TAG, "-----------------------------------------------");
+                        mPostList.add(post);
                     }
 
                     while (true) {
@@ -138,7 +145,7 @@ public class PhotoStoreIntentService extends IntentService {
                                 imgUrl = imgUrl.replace("background-image:url('", "");
                                 imgUrl = imgUrl.replace("');", "");
                                 imgUrl = imgUrl.replace("cythumb.cyworld.com/269x269/", "");
-                                imgUrl = imgUrl.replace("file_down", "vm_file_down");
+                                imgUrl = imgUrl.replace("/file_down", "/vm_file_down");
 
                                 Post post = new Post();
                                 post.folderID = folderID;
@@ -149,18 +156,22 @@ public class PhotoStoreIntentService extends IntentService {
                                 lastPostID = post.postID.split("_")[0];
                                 lastDate = post.postID.split("_")[1];
 
+                                CommonLog.w(TAG, "count : " + (++storeCnt));
                                 CommonLog.w(TAG, "postImg : " +  post.postImg);
                                 CommonLog.w(TAG, "postID" + post.postID);
-                                postList.add(post);
+                                CommonLog.w(TAG, "-----------------------------------------------");
+                                mPostList.add(post);
                             }
                         }
                     }
 
                     // DB 저장
+                    showNoti("내부 DB에 수집한 정보를 저장 중입니다.", folderTitle);
+
                     DBAdapter dbAdapter = new DBAdapter(getApplicationContext());
                     dbAdapter.open();
 
-                    for (Post post : postList) {
+                    for (Post post : mPostList) {
                         Cursor cursor = dbAdapter.selectPost(post.postID);
                         if (cursor.getCount() == 0) {
                             dbAdapter.insertPost(post);
@@ -170,8 +181,12 @@ public class PhotoStoreIntentService extends IntentService {
 
                     dbAdapter.close();
 
-                    //savePostImages(folderTitle);
+                    // 사진 다운로드
+                    initProgressNoti("사진을 다운로드 중입니다.", folderTitle);
+                    savePostImages(folderTitle);
 
+                    // 다운로드 완료
+                    showNoti("다운로드를 완료하였습니다. 갤러리를 확인해주세요.", folderTitle);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -180,13 +195,19 @@ public class PhotoStoreIntentService extends IntentService {
     }
 
     private void savePostImages(String folderTitle){
+        showProgressNoti(mPostList.size(), 0);
 
-        builder.setProgress(postList.size(), 0, false);
-
-        if(postList != null && postList.size() > 0){
+        if (mPostList != null && mPostList.size() > 0) {
             File storageDir = null;
+
+            // 특문 제거
+            String match = "[^\uAC00-\uD7A3xfe0-9a-zA-Z\\s]";
+            String removeSpecialChar = folderTitle.replaceAll(match, "");
+            removeSpecialChar = removeSpecialChar.replace(" ", "");
+
             // 저장될 디렉토리를 구한다.
-            storageDir = new File(String.format(Defines.EXTRA_PICTURE_OUTPUT_URI, folderTitle));
+            storageDir = new File(String.format(Defines.EXTRA_PICTURE_OUTPUT_URI, removeSpecialChar));
+
             // 디렉토리 없으면 생성
             if (!storageDir.exists()) {
                 storageDir.mkdirs();
@@ -195,7 +216,7 @@ public class PhotoStoreIntentService extends IntentService {
             int countFailure = 0;
             int countProgess = 0;
 
-            for(Post post : postList){
+            for(Post post : mPostList) {
                 Bitmap bitmap = imageLoader.loadImageSync(post.postImg);
 
                 File saveFile = null;
@@ -212,7 +233,7 @@ public class PhotoStoreIntentService extends IntentService {
                 FileOutputStream os = null;
                 try {
                     os = new FileOutputStream( saveFile );
-                    bitmap.compress( Bitmap.CompressFormat.JPEG, 88, os );
+                    bitmap.compress( Bitmap.CompressFormat.JPEG, 90, os );
 
                 } catch( FileNotFoundException e ) {
                     countFailure++;
@@ -227,7 +248,7 @@ public class PhotoStoreIntentService extends IntentService {
                         if (os != null ) {
                             os.close();
                             countProgess++;
-                            builder.setProgress(postList.size(), countProgess, false);
+                            showProgressNoti(mPostList.size(), countProgess);
                         }
                     } catch( Exception ex ) {
                     }
@@ -239,7 +260,6 @@ public class PhotoStoreIntentService extends IntentService {
     }
 
     private File createImageFile(String postTitle, File storageDir) throws IOException {
-
         File imageFile = null;
         /*final String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         final String baseFileName = IMAGE_FILE_PREFIX + "_" + timeStamp;*/
@@ -269,7 +289,6 @@ public class PhotoStoreIntentService extends IntentService {
 
     /** 저장된 이미지 파일을 MediaStore에 추가 */
     private void galleryAddPic(File saveFile) {
-
         if (saveFile != null) {
             Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
             Uri contentUri = Uri.fromFile(saveFile);
@@ -278,22 +297,45 @@ public class PhotoStoreIntentService extends IntentService {
         }
     }
 
-    private void showNoti(String folderTitle) {
-        NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+    private void initNoti() {
+        nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
 
         builder = new NotificationCompat.Builder(this);
+        builder.setPriority(Notification.PRIORITY_HIGH);
         builder.setSmallIcon(R.mipmap.ic_launcher);
-        builder.setTicker("NotificationCompat.Builder");
-        builder.setWhen(System.currentTimeMillis());
-        // mCompatBuilder.setNumber(10);
-        builder.setContentTitle("당신의 추억을 폰으로 저장 중입니다.");
-        builder.setContentText("현재 저장 중인 폴더는 '" + folderTitle + "' 입니다.");
         builder.setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE);
         builder.setContentIntent(pendingIntent);
         builder.setAutoCancel(false);
-        // mCompatBuilder.setOngoing(true);
+    }
 
-        nm.notify(222, builder.build());
+    private void showNoti(String contentTitle, String contentText) {
+        builder.setTicker(contentText + " " + contentTitle);
+        builder.setWhen(System.currentTimeMillis());
+        builder.setContentTitle(contentTitle);
+        builder.setContentText(contentText);
+
+        nm.notify(223, builder.build());
+    }
+
+    private void initProgressNoti(String contentTitle, String contentText) {
+        if (mPostList != null && mPostList.size() > 0) {
+            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
+
+            progBuilder = new NotificationCompat.Builder(this);
+            progBuilder.setPriority(Notification.PRIORITY_HIGH);
+            progBuilder.setSmallIcon(R.mipmap.ic_launcher);
+            progBuilder.setContentIntent(pendingIntent);
+            progBuilder.setAutoCancel(false);
+            progBuilder.setOngoing(true);
+            progBuilder.setWhen(System.currentTimeMillis());
+            progBuilder.setContentTitle(contentTitle);
+            progBuilder.setContentText(contentText);
+        }
+    }
+
+    private void showProgressNoti(int max, int progress) {
+        progBuilder.setProgress(max, progress, false);
+        nm.notify(223, progBuilder.build());
     }
 }

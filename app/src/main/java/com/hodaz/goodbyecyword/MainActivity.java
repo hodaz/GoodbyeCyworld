@@ -82,9 +82,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 if (!existID) {
                     view.loadUrl("javascript:window.HtmlViewer.showHTML" +
-                            "('<html>'+document.getElementsByTagName('html')[0].innerHTML+'<script>var currentUrl=\"startc"+url+"endc\"</script></html>');");
-                }
-                else if (url.contains("logout.jsp")) {
+                            "('<html>'+document.getElementsByTagName('html')[0].innerHTML+'<script>var currentUrl=\"startc" + url + "endc\"</script></html>');");
+                } else if (url.contains("logout.jsp")) {
                     PreferenceUtil.getInstance().remove(mContext, KEY_CYWORLD_ID);
                 }
             }
@@ -106,7 +105,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.folder:
-                if (mFolder.getText().toString().equals("폴더조회")) {
+                if (mFolderList == null || mFolderList.size() == 0) {
                     new AsyncTask<Void, Void, Document>() {
                         private String url;
 
@@ -178,33 +177,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     mFolderList.add(folder);
                                 }
 
-                                mFolder.setText("폴더확인");
+                                showFolderList();
                             }
                         }
                     }.execute();
                 }
-                else if (mFolder.getText().toString().equals("폴더확인")) {
-                    /*StringBuilder builder = new StringBuilder();
-
-                    for (Folder f : mFolderList) {
-                        builder.append(f.id + "\n" + f.title + "\n");
-                    }*/
-
-                    ArrayList<String> list = new ArrayList<>();
-                    for(Folder f : mFolderList){
-                        list.add(f.title);
-                    }
-
-                    new AlertDialog.Builder(mContext).setTitle("폴더목록").setItems(list.toArray(new String[list.size()]), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            Intent intent = new Intent(MainActivity.this, PhotoStoreIntentService.class);
-                            intent.putExtra("CyID", mCyworldId);
-                            intent.putExtra("Folder", mFolderList.get(which));
-                            startService(intent);
-                        }
-                    })
-                            .setPositiveButton(android.R.string.ok, null).setCancelable(false).create().show();
+                else {
+                    showFolderList();
                 }
                 break;
             case R.id.backup:
@@ -219,6 +198,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 break;
         }
+    }
+
+    /**
+     * 수집된 폴더 리스트 보기
+     */
+    private void showFolderList() {
+        /*StringBuilder builder = new StringBuilder();
+
+                    for (Folder f : mFolderList) {
+                        builder.append(f.id + "\n" + f.title + "\n");
+                    }*/
+
+        ArrayList<String> list = new ArrayList<>();
+        for(Folder f : mFolderList){
+            list.add(f.title);
+        }
+
+        new AlertDialog.Builder(mContext).setTitle("폴더목록").setItems(list.toArray(new String[list.size()]), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Intent intent = new Intent(MainActivity.this, PhotoStoreIntentService.class);
+                intent.putExtra("CyID", mCyworldId);
+                intent.putExtra("Folder", mFolderList.get(which));
+                startService(intent);
+            }
+        })
+                .setPositiveButton(android.R.string.ok, null).setCancelable(false).create().show();
     }
 
     class HttpCrawlingInterface {

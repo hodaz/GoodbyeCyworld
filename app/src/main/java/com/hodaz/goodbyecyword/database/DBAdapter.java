@@ -52,6 +52,7 @@ public class DBAdapter {
             values.put("post_title", post.postTitle);
             values.put("post_img", post.postImg);
             values.put("insert_date", System.currentTimeMillis());
+            values.put("stored_post_img", post.storedPostImg);
 
             long rowId = db.insert(POST_TABLE, null, values);
             return rowId;
@@ -78,7 +79,7 @@ public class DBAdapter {
     }
 
     public static final String[] COL_MUSIC_INFO = {
-        "_id", "folder_id", "folder_title", "post_id", "post_title", "post_img", "insert_date"
+        "_id", "folder_id", "folder_title", "post_id", "post_title", "post_img", "insert_date", "stored_post_img"
     };
 
     /**

@@ -24,7 +24,8 @@ class DBHelper extends SQLiteOpenHelper {
             "post_id TEXT," +
             "post_title TEXT," +
             "post_img TEXT," +
-            "insert_date INTEGER" +
+            "insert_date INTEGER," +
+            "stored_post_img TEXT" +
             ");";
 
     private static final String SQL_CREATE_INDEX =
