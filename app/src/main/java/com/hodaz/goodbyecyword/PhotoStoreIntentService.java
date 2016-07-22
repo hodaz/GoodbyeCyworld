@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.support.v7.app.NotificationCompat;
 
 import com.hodaz.goodbyecyword.common.Defines;
@@ -166,7 +167,7 @@ public class PhotoStoreIntentService extends IntentService {
                     }
 
                     // DB 저장
-                    showNoti("내부 DB에 수집한 정보를 저장 중입니다.", folderTitle);
+                    showNoti("수집한 정보를 저장 중입니다.", folderTitle);
 
                     DBAdapter dbAdapter = new DBAdapter(getApplicationContext());
                     dbAdapter.open();
@@ -186,7 +187,7 @@ public class PhotoStoreIntentService extends IntentService {
                     savePostImages(folderTitle);
 
                     // 다운로드 완료
-                    showNoti("다운로드를 완료하였습니다. 갤러리를 확인해주세요.", folderTitle);
+                    showNoti("다운로드를 완료하였습니다.", "갤러리에서 '" + folderTitle + "' 폴더를 확인해주세요.");
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -299,7 +300,9 @@ public class PhotoStoreIntentService extends IntentService {
 
     private void initNoti() {
         nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         builder = new NotificationCompat.Builder(this);
         builder.setPriority(Notification.PRIORITY_HIGH);
@@ -315,12 +318,21 @@ public class PhotoStoreIntentService extends IntentService {
         builder.setContentTitle(contentTitle);
         builder.setContentText(contentText);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            NotificationCompat.BigTextStyle style = new NotificationCompat.BigTextStyle(builder);
+            style.setBigContentTitle(contentTitle);
+            style.bigText(contentText);
+
+            builder.setStyle(style);
+        }
         nm.notify(223, builder.build());
     }
 
     private void initProgressNoti(String contentTitle, String contentText) {
         if (mPostList != null && mPostList.size() > 0) {
-            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
             progBuilder = new NotificationCompat.Builder(this);
             progBuilder.setPriority(Notification.PRIORITY_HIGH);
