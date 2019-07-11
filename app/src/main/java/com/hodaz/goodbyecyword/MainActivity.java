@@ -5,17 +5,21 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.http.SslError;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.webkit.JavascriptInterface;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 
+import android.widget.Toast;
 import com.hodaz.goodbyecyword.common.Defines;
 import com.hodaz.goodbyecyword.common.Utils;
 import com.hodaz.goodbyecyword.model.Folder;
@@ -59,11 +63,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void initWebView() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
+
         final WebSettings settings = mWebView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setAppCacheEnabled(true);
         settings.setBuiltInZoomControls(true);
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        }
         mWebView.addJavascriptInterface(new HttpCrawlingInterface(this), "HtmlViewer");
         mWebView.setWebChromeClient(new WebChromeClient() {
 
@@ -87,8 +97,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     PreferenceUtil.getInstance().remove(mContext, KEY_CYWORLD_ID);
                 }
             }
+
+            @Override
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                handler.proceed();
+            }
         });
-        mWebView.loadUrl("http://m.cyworld.com");
+        mWebView.loadUrl("http://cy.cyworld.com");
 
 //        CookieSyncManager.createInstance(this);
 //        CookieManager cookieManager = CookieManager.getInstance();
@@ -194,7 +209,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.cyid:
                 if (mCyID.getText().toString().equals("로그인")) {
-                    mWebView.loadUrl("https://cyxso.cyworld.com/mnate/Login.sk?loginstr=redirect&redirection=http://m.cyworld.com/&svccd=mcyworld_ndr.nate.com/main/");
+                    mWebView.loadUrl("https://cyxso.cyworld.com/mnate/Login.sk?loginstr=redirect&redirection=https://cy.cyworld.com/timeline");
+                }
+                else {
+                    String id = PreferenceUtil.getInstance().getString(mContext, KEY_CYWORLD_ID, "");
+                    if (!id.isEmpty()) {
+                        mWebView.loadUrl("https://cy.cyworld.com/home/new/"+id);
+                    }
                 }
                 break;
         }
@@ -215,7 +236,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             list.add(f.title);
         }
 
-        new AlertDialog.Builder(mContext).setTitle("폴더목록").setItems(list.toArray(new String[list.size()]), new DialogInterface.OnClickListener() {
+        new AlertDialog.Builder(mContext).setTitle("폴더선택").setItems(list.toArray(new String[list.size()]), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Intent intent = new Intent(MainActivity.this, PhotoStoreIntentService.class);
@@ -239,31 +260,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //            new AlertDialog.Builder(ctx).setTitle("HTML").setMessage(html)
 //                    .setPositiveButton(android.R.string.ok, null).setCancelable(false).create().show();
 
-            String url = html.substring(html.indexOf("startc")+6, html.indexOf("endc"));
-            CommonLog.e(TAG, "url : " + url);
+            int newHomeIndex = html.indexOf("/home/new/");
+            if (newHomeIndex < 0) return;
 
-            if (url.equals("http://m.cyworld.com/")) {
-                int startPos = html.indexOf("내 싸이홈가기");
-                if (startPos > 0) {
-                    String homeUrl = html.substring(startPos - 37, startPos - 2);
-                    CommonLog.e(TAG, "homeUrl : " + homeUrl);
+            final String id = html.substring(newHomeIndex+10, newHomeIndex+10+8);
+            CommonLog.e(TAG, "id : " + id);
 
-                    if (homeUrl.startsWith("http")) {
-                        final String id = homeUrl.replace("http://cy.cyworld.com/home/", "");
-
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                existID = true;
-                                mCyID.setText(id);
-                                mCyworldId = id;
-                            }
-                        });
-
-                        PreferenceUtil.getInstance().putString(ctx, KEY_CYWORLD_ID, id);
-                        CommonLog.e(TAG, "id : " + id);
+            if (id.length() > 0) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        existID = true;
+                        mCyID.setText(id);
+                        mCyworldId = id;
                     }
-                }
+                });
+
+                PreferenceUtil.getInstance().putString(ctx, KEY_CYWORLD_ID, id);
+                CommonLog.e(TAG, "id : " + id);
+            }
+            else {
+                Toast.makeText(mContext, "아이디 엄슴", Toast.LENGTH_SHORT).show();
             }
         }
     }

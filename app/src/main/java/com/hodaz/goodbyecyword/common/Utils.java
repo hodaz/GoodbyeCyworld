@@ -19,9 +19,11 @@ public class Utils {
             String[] temp = cookies.split(";");
             for (String ar1 : temp) {
                 String[] temp1 = ar1.split("=");
-                cookieValue = temp1[1];
-                // Log.e("Cyworld Cookie", ar1);
-                cookieMap.put(temp1[0], temp1[1]);
+                if (temp1.length > 1) {
+                    cookieValue = temp1[1];
+                    // Log.e("Cyworld Cookie", ar1);
+                    cookieMap.put(temp1[0], cookieValue);
+                }
             }
         }
         return cookieMap;

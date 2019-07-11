@@ -10,8 +10,6 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
-import android.support.v7.app.NotificationCompat;
-
 import com.hodaz.goodbyecyword.common.Defines;
 import com.hodaz.goodbyecyword.common.Utils;
 import com.hodaz.goodbyecyword.database.DBAdapter;
@@ -21,7 +19,6 @@ import com.nostra13.universalimageloader.cache.memory.impl.WeakMemoryCache;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -46,8 +43,8 @@ public class PhotoStoreIntentService extends IntentService {
     private ArrayList<Post> mPostList;
     private static final int MAX_RETRY_COUNT = 100;
     private NotificationManager nm;
-    private NotificationCompat.Builder builder;
-    private NotificationCompat.Builder progBuilder;
+    private Notification.Builder builder;
+    private Notification.Builder progBuilder;
     private ImageLoader imageLoader;
 
     public PhotoStoreIntentService() {
@@ -108,8 +105,8 @@ public class PhotoStoreIntentService extends IntentService {
                         String imgUrl = e.select("figure").attr("style");
                         imgUrl = imgUrl.replace("background-image:url('", "");
                         imgUrl = imgUrl.replace("');", "");
-                        imgUrl = imgUrl.replace("cythumb.cyworld.com/269x269/", "");
-                        imgUrl = imgUrl.replace("/file_down", "/vm_file_down");
+                        imgUrl = imgUrl.replace("width=269&height=269", "v=0&width=3000&");
+                        imgUrl = imgUrl.replace("file_down", "vm_file_down");
 
                         CommonLog.e(TAG, postId + "\n" + imgUrl);
 
@@ -145,8 +142,8 @@ public class PhotoStoreIntentService extends IntentService {
                                 String imgUrl = e.select("figure").attr("style");
                                 imgUrl = imgUrl.replace("background-image:url('", "");
                                 imgUrl = imgUrl.replace("');", "");
-                                imgUrl = imgUrl.replace("cythumb.cyworld.com/269x269/", "");
-                                imgUrl = imgUrl.replace("/file_down", "/vm_file_down");
+                                imgUrl = imgUrl.replace("width=269&height=269", "width=3000&height=3000");
+                                imgUrl = imgUrl.replace("file_down", "vm_file_down");
 
                                 Post post = new Post();
                                 post.folderID = folderID;
@@ -304,7 +301,7 @@ public class PhotoStoreIntentService extends IntentService {
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        builder = new NotificationCompat.Builder(this);
+        builder = new Notification.Builder(this);
         builder.setPriority(Notification.PRIORITY_HIGH);
         builder.setSmallIcon(R.mipmap.ic_launcher);
         builder.setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE);
@@ -319,7 +316,7 @@ public class PhotoStoreIntentService extends IntentService {
         builder.setContentText(contentText);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            NotificationCompat.BigTextStyle style = new NotificationCompat.BigTextStyle(builder);
+            Notification.BigTextStyle style = new Notification.BigTextStyle(builder);
             style.setBigContentTitle(contentTitle);
             style.bigText(contentText);
 
@@ -334,8 +331,10 @@ public class PhotoStoreIntentService extends IntentService {
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-            progBuilder = new NotificationCompat.Builder(this);
-            progBuilder.setPriority(Notification.PRIORITY_HIGH);
+            progBuilder = new Notification.Builder(this);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                progBuilder.setPriority(Notification.PRIORITY_HIGH);
+            }
             progBuilder.setSmallIcon(R.mipmap.ic_launcher);
             progBuilder.setContentIntent(pendingIntent);
             progBuilder.setAutoCancel(false);
